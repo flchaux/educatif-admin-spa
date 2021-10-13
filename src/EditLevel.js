@@ -4,6 +4,7 @@ import {
     useParams
   } from 'react-router-dom'
 import PuzzleForm from './PuzzleForm'
+import BasicForm from './BasicForm'
 
 function EditLevel() {
 
@@ -12,17 +13,13 @@ function EditLevel() {
 
     function load(levelId) {
         const baseUrl = 'http://localhost:8081';
-        const url = `${baseUrl}/bundle/${levelId}`
+        const url = `${baseUrl}/level/${levelId}`
         axios.get(url)
             .then(function (response) {
                 // handle success
                 console.log('success');
-                setLevel({
-                    width: parseInt(response.data.specs.size.width),
-                    height: parseInt(response.data.specs.size.height),
-                    name: response.data.bundle,
-                    file: baseUrl+'/bundle/'+response.data.bundle+"/src.png"
-                })
+                console.log(response.data);
+                setLevel(response.data)
             }).catch(function (error) {
                 // handle error
                 console.log(error);
@@ -35,7 +32,17 @@ function EditLevel() {
         }
     }, [levelId])
 
-    return level ? <PuzzleForm level={level} /> : <p>Loading...</p>
+    if(level){
+        if(level.type === 'puzzle'){
+            return <PuzzleForm level={level} />
+        }
+        else if(level.type === 'basic'){
+            return <BasicForm level={level} />
+        }
+    }
+    else{
+        return <p>Loading...</p>
+    }
 }
 
 export default EditLevel;

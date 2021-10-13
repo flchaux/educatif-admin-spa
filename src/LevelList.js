@@ -7,7 +7,7 @@ function LevelList() {
 
     function load() {
         const baseUrl = 'http://localhost:8081';
-        const url = `${baseUrl}/bundles`
+        const url = `${baseUrl}/levels`
         axios.get(url)
             .then(function (response) {
                 // handle success
@@ -38,9 +38,9 @@ function LevelList() {
                 <tbody>
                     {levels.map((level) => {
                         
-                        const url = `/edit/${level.bundle}`
-                        return <tr key={level.bundle}>
-                            <td><Link to={url}>{level.bundle}</Link></td>
+                        const url = `/edit/${level.name}`
+                        return <tr key={level.name}>
+                            <td><Link to={url}>{level.name}</Link></td>
                         </tr>
                     })}
                 </tbody>

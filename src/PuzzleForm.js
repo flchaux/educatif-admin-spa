@@ -6,10 +6,23 @@ import { useHistory } from 'react-router'
 import Delete from '@mui/icons-material/Delete'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 
+const baseUrl = 'http://localhost:8081';
+
 function PuzzleForm(props) {
+
+    let levelLoaded
+    if(props.level){
+        levelLoaded = {
+            width: parseInt(props.level.specs.size.width),
+            height: parseInt(props.level.specs.size.height),
+            name: props.level.name,
+            file: baseUrl+'/level/'+props.level.name+"/src.png"
+        }
+    }
+    
     const [deletionConfirmOpen, setDeletionConfirmOpen] = useState(false)
-    const [fileUrl, setFileUrl] = useState(props.level?.file)
-    const [level, setLevel] = useState(props.level ?? {
+    const [fileUrl, setFileUrl] = useState(levelLoaded?.file)
+    const [level, setLevel] = useState(levelLoaded ?? {
         width: 4,
         height: 4,
         name: "",
