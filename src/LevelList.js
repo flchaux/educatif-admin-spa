@@ -1,10 +1,11 @@
-import { Paper } from '@mui/material'
+import { Paper, Button, List, ListItem, ListItemButton, Menu, MenuItem } from '@mui/material'
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Link } from 'react-router-dom';
 
 function LevelList() {
-
+    const [anchorEl, setAnchorEl] = useState(null);
+    const createMenuOpen = Boolean(anchorEl);
     function load() {
         const baseUrl = 'http://localhost:8081';
         const url = `${baseUrl}/levels`
@@ -18,33 +19,49 @@ function LevelList() {
             })
     }
 
+    function onClickCreate(event) {
+        setAnchorEl(event.currentTarget);
+    }
+    function handleClose() {
+        setAnchorEl(null);
+    };
+
     let [levels, setLevels] = useState([])
 
     useEffect(() => {
         load()
     }, [])
 
-    console.log(levels)
-
     return (
-        <Paper style={{ margin: 'auto', minWidth: 400, maxWidth: 800, padding: 10 }} xs={6}>
+        <Paper className='content'>
+            <Button component={Link} variant='contained' to="/level/create/puzzle">Create Puzzle</Button>
+            <Button component={Link} variant='contained' to="/level/create/basic">Create from scratch</Button>
+            <Button variant='contained' onClick={onClickCreate}>Create</Button>
+
+            <Menu
+                anchorEl={anchorEl}
+                open={createMenuOpen}
+                onClose={handleClose}
+                anchorOrigin={{
+                    vertical: 'top',
+                    horizontal: 'left',
+                }}
+                transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'left',
+                }}
+            >
+                <MenuItem component={Link} to="/level/create/puzzle">Puzzle</MenuItem>
+                <MenuItem component={Link} to="/level/create/basic">From Scratch</MenuItem>
+            </Menu>
+
             <h2>List of level</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {levels.map((level) => {
-                        
-                        const url = `/edit/${level.name}`
-                        return <tr key={level.name}>
-                            <td><Link to={url}>{level.name}</Link></td>
-                        </tr>
-                    })}
-                </tbody>
-            </table>
+            <List>
+                {levels.map((level) => {
+                    const url = `/level/edit/${level.name}`
+                    return <ListItem key={level.name}><ListItemButton component={Link} to={url}>{level.name}</ListItemButton></ListItem>
+                })}
+            </List>
         </Paper>
     );
 }

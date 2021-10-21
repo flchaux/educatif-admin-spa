@@ -6,13 +6,16 @@ import axios from 'axios';
 
 const baseUrl = 'http://localhost:8081';
 const width = 800
-const height = 600
+const height = 500
+const clientPixelsPerUnit = 100
 
-const LevelDesign = ({ initialPieces, levelChanged }) => {
+const LevelDesign = ({ initialPieces, levelChanged, levelSize }) => {
     const [pieces, setPieces] = useState([]);
     const trRef = useRef()
     const [selectedPiece, setSelectedPiece] = useState()
     const loadedPiecesRef = useRef([])
+    const ratio = levelSize.width / width
+    const sizeRatio = ratio * clientPixelsPerUnit
 
     useEffect(() => {
         levelChanged(pieces)
@@ -22,10 +25,6 @@ const LevelDesign = ({ initialPieces, levelChanged }) => {
         piece.id = pieces.length
         setPieces([...pieces, piece])
     }, [pieces])
-
-    const addExistingPiece = (piece) => {
-
-    }
 
     const addNewPiece = (file) => {
         var formData = new FormData();
@@ -61,6 +60,7 @@ const LevelDesign = ({ initialPieces, levelChanged }) => {
         setPieces([...pieces.filter(function (p) {
             return p.id !== pieceId
         })])
+        setSelectedPiece(null)
     }, [pieces])
 
 
@@ -94,6 +94,12 @@ const LevelDesign = ({ initialPieces, levelChanged }) => {
         );
     }
 
+    const clickBackground = (e) => {
+        if (e.target.constructor.name === 'Stage') {
+            setSelectedPiece(null)
+        }
+    }
+
     const handleDropImage = (images) => {
         addNewPiece(images[0])
     }
@@ -104,8 +110,10 @@ const LevelDesign = ({ initialPieces, levelChanged }) => {
                 if (e.target.id() === piece.id) {
                     return {
                         ...piece,
-                        scale: e.target.scaleX(),
-                        rotation: e.target.rotation()
+                        scale: e.target.scaleX() * sizeRatio,
+                        rotation: e.target.rotation(),
+                        x: e.target.x(),
+                        y: e.target.y(),
                     };
                 }
                 else {
@@ -132,89 +140,90 @@ const LevelDesign = ({ initialPieces, levelChanged }) => {
         };
     }, [handleKeyDown]);
 
-
-
     const onSelect = (e) => {
         setSelectedPiece(e.target)
     }
 
-    
     useEffect(() => {
-        if(initialPieces){
-            let i = 0
-            const ratio = 0.01
-            for(let p of initialPieces){
+        if (initialPieces) {
+            let images = []
+
+            for (let i = 0; i < initialPieces.length; ++i) {
+                let p = initialPieces[i]
                 let imgUrl = p.url
                 let image = new window.Image();
                 image.src = imgUrl;
-                let piece = {
-                    id: i,
-                    image: image,
-                    x: (p.positionX / ratio) - (image.width / 2),
-                    y: width - ((p.positionY / ratio) + (image.height / 2)),
-                    rotation: 0,
-                    isDragging: false,
-                    scale: 1,
-                }
-                ++i
+                images.push(image)
                 image.addEventListener('load', () => {
+                    let image = images[i]
+                    let piece = {
+                        id: p.id,
+                        image: image,
+                        imageSrc: p.image,
+                        x: (p.positionX / ratio) - ((image.width / sizeRatio) / 2),
+                        y: height - ((p.positionY / ratio) + ((image.height / sizeRatio) / 2)),
+                        rotation: 0,
+                        isDragging: false,
+                        scale: 1,
+                    }
+                    ++i
                     loadedPiecesRef.current.push(piece)
-                    if(loadedPiecesRef.current.length === initialPieces.length){
+                    if (loadedPiecesRef.current.length === initialPieces.length) {
                         setPieces(loadedPiecesRef.current)
                     }
-                });
+                })
             }
         }
-      }, [initialPieces])
+    }, [initialPieces, ratio, sizeRatio])
 
     useEffect(() => {
         if (selectedPiece) {
-            console.log('useEffect[isSelected]')
             trRef.current.nodes([selectedPiece]);
             trRef.current.getLayer().batchDraw();
+        }
+        else {
+            if (trRef.current) {
+                trRef.current.nodes([]);
+                trRef.current.getLayer().batchDraw();
+            }
         }
     }, [selectedPiece]);
 
     return (
-        <Grid>
-            <Grid item xs={6}>
-                <Stage width={width} height={height} style={{ border: "solid 1px black" }}>
-                    <Layer>
-                        {pieces.map((piece) => {
-                            return (<Image
-                                innerRadius={20}
-                                outerRadius={40}
-                                draggable
-                                shadowColor="black"
-                                shadowBlur={10}
-                                shadowOpacity={0.6}
-                                shadowOffsetX={piece.isDragging ? 10 : 5}
-                                shadowOffsetY={piece.isDragging ? 10 : 5}
-                                scaleX={piece.scale}
-                                scaleY={piece.scale}
-                                rotation={piece.rotation}
-                                onDragStart={handleDragStart}
-                                onDragEnd={handleDragEnd}
-                                onTransformEnd={onTransformEnd}
-                                key={piece.id}
-                                image={piece.image}
-                                id={piece.id}
-                                onClick={onSelect}
-                                x={piece.x}
-                                y={piece.y} />
-                            )
-                        }
-                        )}
-                        <Transformer ref={trRef}>
+                <ImageDropZone onChange={handleDropImage} style={{width: 800, margin: 'auto', boxSizing: 'border-box'}}>
+                    <Stage width={width} height={height} style={{ border: "solid 1px black" }} onClick={clickBackground}>
+                        <Layer>
+                            {pieces.map((piece) => {
+                                return (<Image
+                                    innerRadius={20}
+                                    outerRadius={40}
+                                    draggable
+                                    shadowColor="black"
+                                    shadowBlur={10}
+                                    shadowOpacity={0.6}
+                                    shadowOffsetX={piece.isDragging ? 10 : 5}
+                                    shadowOffsetY={piece.isDragging ? 10 : 5}
+                                    scaleX={piece.scale / sizeRatio}
+                                    scaleY={piece.scale / sizeRatio}
+                                    rotation={piece.rotation}
+                                    onDragStart={handleDragStart}
+                                    onDragEnd={handleDragEnd}
+                                    onTransformEnd={onTransformEnd}
+                                    key={piece.id}
+                                    image={piece.image}
+                                    id={piece.id}
+                                    onClick={onSelect}
+                                    x={piece.x}
+                                    y={piece.y} />
+                                )
+                            }
+                            )}
+                            <Transformer ref={trRef}>
 
-                        </Transformer>
-                    </Layer>
-                </Stage>
-            </Grid>
-            <Grid item xs={6}>
-                <ImageDropZone onChange={handleDropImage} ></ImageDropZone>
-            </Grid>
-        </Grid>);
+                            </Transformer>
+                        </Layer>
+                    </Stage>
+                </ImageDropZone>);
 };
 
 

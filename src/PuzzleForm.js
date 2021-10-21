@@ -62,8 +62,8 @@ function PuzzleForm(props) {
         history.goBack()
     }
 
-    function create(event) {
-        event.preventDefault();
+
+    function create() {
         if (level.name.length > 0 && level.file != null) {
             const baseUrl = 'http://localhost:8081';
             var formData = new FormData();
@@ -78,6 +78,28 @@ function PuzzleForm(props) {
                 .then(function (response) {
                     back()
                 })
+        }
+    }
+
+    function update(){
+        if (level.name.length > 0 && level.file != null) {
+            const baseUrl = 'http://localhost:8081';
+            const url = `${baseUrl}/generate/puzzle?level=${level.name}&width=${level.width}&height=${level.height}`
+            console.log(url)
+            axios.patch(url)
+                .then(function (response) {
+                    back()
+                })
+        }
+    }
+
+    function submit(event){
+        event.preventDefault();
+        if(props.level){
+            update()
+        }
+        else{
+            create()
         }
     }
 
@@ -113,13 +135,18 @@ function PuzzleForm(props) {
                     </Button>
                 </DialogActions>
             </Dialog>
-            <Paper style={{ margin: 'auto', minWidth: 400, maxWidth: 800, padding: 10 }} xs={6}>
-                <ArrowBackIcon style={{cursor: 'pointer', float: 'left'}} onClick={() => back()} />
-                {props.level ? 
-                    <Delete onClick={() => setDeletionConfirmOpen(true)} style={{ cursor: "pointer", float: 'right' }} /> : <></>}
-                {!props.level ? <h2>Create a puzzle</h2> : <h2>See puzzle "{level.name}"</h2>}
-                <form onSubmit={create}>
+            <Paper className='content'>
+                <form onSubmit={submit}>
                     <Grid container spacing={2} alignItems="center">
+                        <Grid item xs={1}>
+                            <ArrowBackIcon style={{ cursor: 'pointer', float: 'left' }} onClick={() => back()} />
+                        </Grid>
+                        <Grid item xs={10} style={{textAlign:'center'}}>
+                            {!props.level ? <h2>Create a puzzle</h2> : <h2>Edit puzzle "{level.name}"</h2>}
+                        </Grid>
+                        <Grid item xs={1}>
+                            {props.level ? <Delete onClick={() => setDeletionConfirmOpen(true)} style={{ cursor: "pointer", float: 'right' }} /> : <></>}
+                        </Grid>
                         <Grid item xs={6}>
                             Name
                         </Grid>
@@ -144,8 +171,8 @@ function PuzzleForm(props) {
                         <Grid item xs={6}>
                             <MyDropzone onChange={handleDropImage} disabled={props.level ? true : false} file={fileUrl}></MyDropzone>
                         </Grid>
-                        <Grid item xs={10}>
-                            {!props.level ?  <Button type="submit">Create</Button> : <></>}
+                        <Grid item xs={12}>
+                            <Button style={{float: 'right'}} variant='contained' type="submit">Save</Button>
                         </Grid>
 
                     </Grid>
