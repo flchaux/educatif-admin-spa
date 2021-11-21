@@ -3,11 +3,12 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Link } from 'react-router-dom';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import config from './config';
 
 function PlaylistList() {
 
     function load() {
-        const baseUrl = 'http://localhost:8081';
+        const baseUrl = config.baseApiUrl
         const url = `${baseUrl}/playlist`
         axios.get(url)
             .then(function (response) {

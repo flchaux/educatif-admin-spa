@@ -7,10 +7,11 @@ import {
     useParams
   } from 'react-router-dom'
   import { useHistory } from 'react-router'
+import config from './config'
 
 function EditPlaylist(props) {
 
-    const baseUrl = 'http://localhost:8081';
+    const baseUrl = config.baseApiUrl
     const [deletionConfirmOpen, setDeletionConfirmOpen] = useState(false)
     const playlistName = useParams().playlistName
     const [playlist, setPlaylist] = useState(playlistName ? null : {
@@ -68,7 +69,7 @@ function EditPlaylist(props) {
         }
     }
     function loadLevels(){
-        const baseUrl = 'http://localhost:8081';
+        const baseUrl = config.baseApiUrl
         const url = `${baseUrl}/levels`
         axios.get(url)
             .then(function (response) {

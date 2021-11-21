@@ -5,6 +5,7 @@ import {
   } from 'react-router-dom'
 import PuzzleForm from './PuzzleForm'
 import BasicForm from './BasicForm'
+import config from './config'
 
 function EditLevel() {
 
@@ -12,13 +13,12 @@ function EditLevel() {
     const levelId = useParams().levelId
 
     function load(levelId) {
-        const baseUrl = 'http://localhost:8081';
+        const baseUrl = config.baseApiUrl
         const url = `${baseUrl}/level/${levelId}`
         axios.get(url)
             .then(function (response) {
                 // handle success
                 console.log('success');
-                console.log(response.data);
                 setLevel(response.data)
             }).catch(function (error) {
                 // handle error

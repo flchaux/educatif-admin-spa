@@ -1,24 +1,38 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Stage, Layer, Image, Transformer } from 'react-konva';
 import ImageDropZone from './ImageDropZone';
-import { Grid } from '@mui/material';
-import axios from 'axios';
+import { Button, Grid, List, Step, StepLabel, Stepper, Switch } from '@mui/material';
+import uploadTmpFile from './uploadTmpFile'
+import PieceDetails from './PieceDetails';
+import {steps, STEP_BACKGROUND, STEP_INITIAL_POSITION, STEP_FINAL_POSITION, STEP_STATIC} from './levelSteps'
+import PieceList from './PieceList';
 
-const baseUrl = 'http://localhost:8081';
-const width = 800
+const width = 1100
 const height = 500
 const clientPixelsPerUnit = 100
 
-const LevelDesign = ({ initialPieces, levelChanged, levelSize }) => {
-    const [pieces, setPieces] = useState([]);
+function computePieceCanvasPosition(position, ratio, sizeRatio, imageSize) {
+    return {
+        x: (position.x / ratio) - ((imageSize.width / sizeRatio) / 2),
+        y: height - ((position.y / ratio) + ((imageSize.height / sizeRatio) / 2)),
+    }
+}
+
+
+const LevelDesign = ({ levelChanged, level }) => {
+    const [pieces, setPieces] = useState([])
     const trRef = useRef()
-    const [selectedPiece, setSelectedPiece] = useState()
+    const [selectedImage, setSelectedImage] = useState()
+    const [activeStep, setActiveStep] = useState(STEP_BACKGROUND)
     const loadedPiecesRef = useRef([])
-    const ratio = levelSize.width / width
+    const ratio = level.size.width / width
     const sizeRatio = ratio * clientPixelsPerUnit
 
+    const selectedPiece = useMemo(() => selectedImage == null ? null : pieces.find(p => p.id.toString() === selectedImage.id().toString()), [selectedImage, pieces])
+
     useEffect(() => {
-        levelChanged(pieces)
+        levelChanged({ pieces: pieces })
+
     }, [pieces, levelChanged])
 
     const addPiece = useCallback((piece) => {
@@ -26,41 +40,75 @@ const LevelDesign = ({ initialPieces, levelChanged, levelSize }) => {
         setPieces([...pieces, piece])
     }, [pieces])
 
-    const addNewPiece = (file) => {
-        var formData = new FormData();
-        formData.append("image", file);
-        const url = `${baseUrl}/image`
-        axios.post(url, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data'
+    const reorderPieces = (oldIndex, newIndex) => {
+        let newPieces = []
+        let direction = (newIndex < oldIndex) ? -1 : 1
+        for(let i = 0; i < pieces.length; ++i){
+            if(newIndex === i){
+                newPieces[i] = pieces[oldIndex]
+                
             }
-        })
-            .then(function (response) {
-                console.log('upload success: ' + response.data.id)
+            else if((i > newIndex && i <= oldIndex) || (i < newIndex && i >= oldIndex)){
+                newPieces[i] = pieces[i+direction]
+            }
+            else {
+                newPieces[i] = pieces[i]
+            }
+        }
+        setPieces(newPieces)
+    }
 
-                let imgUrl = URL.createObjectURL(file)
-                let image = new window.Image();
-                image.src = imgUrl;
-                image.addEventListener('load', () => {
-                    let piece = {
-                        imageId: response.data.id,
-                        image: image,
-                        x: width / 2 - image.width / 2,
-                        y: height / 2 - image.height / 2,
-                        rotation: 0,
-                        isDragging: false,
-                        scale: 1,
-                    }
-                    addPiece(piece)
-                });
-            })
+    const createPiece = (file, callback) => {
+
+        uploadTmpFile(file, (imageId) => {
+            console.log('upload success: ' + imageId)
+
+            let imgUrl = URL.createObjectURL(file)
+            let image = new window.Image();
+            image.src = imgUrl;
+            image.addEventListener('load', () => {
+                callback(imageId, image)
+
+            });
+        })
+    }
+
+    const addNewPiece = (file, fixed) => {
+        
+        createPiece(file, (imageId, image) => {
+            let piece = {
+                imageId: imageId,
+                image: image,
+                rotation: 0,
+                isDragging: false,
+                scale: 1,
+                name: file.name.replace(/\.[^/.]+$/, ""),
+            }
+            if (fixed) {
+                piece.position = {
+                    x: width / 2 - image.width / 2,
+                    y: height / 2 - image.height / 2,
+                }
+            }
+            else {
+                piece.validPosition = {
+                    x: width / 2 - image.width / 2,
+                    y: height / 2 - image.height / 2,
+                }
+                piece.initialPosition = {
+                    x: width / 2 - image.width / 2,
+                    y: height / 2 - image.height / 2,
+                }
+            }
+            addPiece(piece)
+        });
     }
 
     const deletePiece = useCallback((pieceId) => {
+        setSelectedImage(null)
         setPieces([...pieces.filter(function (p) {
             return p.id !== pieceId
         })])
-        setSelectedPiece(null)
     }, [pieces])
 
 
@@ -76,14 +124,28 @@ const LevelDesign = ({ initialPieces, levelChanged, levelSize }) => {
         );
     }
 
+    const computePosition = (piece, x, y) => {
+        const position = {
+            x: x,
+            y: y,
+        }
+        return activeStep === STEP_FINAL_POSITION && piece.validPosition ? {
+            validPosition: position
+        } : (activeStep === STEP_INITIAL_POSITION && piece.initialPosition) ? {
+            initialPosition: position
+        } : {
+            position: position
+        }
+    }
+
     const handleDragEnd = (e) => {
         setPieces(
             pieces.map((piece) => {
-                if (piece.id == e.target.id()) {
+                if (piece.id.toString() === e.target.id().toString()) {
+
                     return {
                         ...piece,
-                        x: e.target.x(),
-                        y: e.target.y(),
+                        ...computePosition(piece, e.target.x(), e.target.y()),
                         isDragging: false,
                     };
                 }
@@ -96,24 +158,43 @@ const LevelDesign = ({ initialPieces, levelChanged, levelSize }) => {
 
     const clickBackground = (e) => {
         if (e.target.constructor.name === 'Stage') {
-            setSelectedPiece(null)
+            setSelectedImage(null)
         }
     }
 
     const handleDropImage = (images) => {
-        addNewPiece(images[0])
+        if(activeStep === STEP_BACKGROUND){
+            
+        }
+        else{
+            addNewPiece(images[0], activeStep === STEP_STATIC)
+        }
+    }
+
+    const updatePiece = (piece) => {
+        setPieces(
+            pieces.map((p) => {
+                if (piece.id === p.id) {
+                    return {
+                        ...piece
+                    };
+                }
+                else {
+                    return p;
+                }
+            }))
     }
 
     const onTransformEnd = (e) => {
         setPieces(
             pieces.map((piece) => {
                 if (e.target.id() === piece.id) {
+
                     return {
                         ...piece,
                         scale: e.target.scaleX() * sizeRatio,
                         rotation: e.target.rotation(),
-                        x: e.target.x(),
-                        y: e.target.y(),
+                        ...computePosition(piece, e.target.x(), e.target.y())
                     };
                 }
                 else {
@@ -126,11 +207,11 @@ const LevelDesign = ({ initialPieces, levelChanged, levelSize }) => {
     const DELETE_KEY = 46
     const handleKeyDown = useCallback((event) => {
         if (event.keyCode === DELETE_KEY) {
-            if (selectedPiece) {
-                deletePiece(selectedPiece.id())
+            if (selectedImage) {
+                deletePiece(selectedImage.id())
             }
         }
-    }, [selectedPiece, deletePiece]);
+    }, [selectedImage, deletePiece]);
 
     useEffect(() => {
         document.addEventListener("keydown", handleKeyDown, false);
@@ -141,15 +222,16 @@ const LevelDesign = ({ initialPieces, levelChanged, levelSize }) => {
     }, [handleKeyDown]);
 
     const onSelect = (e) => {
-        setSelectedPiece(e.target)
+        setSelectedImage(e.target)
     }
 
+
     useEffect(() => {
-        if (initialPieces) {
+        if (level.pieces) {
             let images = []
 
-            for (let i = 0; i < initialPieces.length; ++i) {
-                let p = initialPieces[i]
+            for (let i = 0; i < level.pieces.length; ++i) {
+                let p = level.pieces[i]
                 let imgUrl = p.url
                 let image = new window.Image();
                 image.src = imgUrl;
@@ -160,25 +242,27 @@ const LevelDesign = ({ initialPieces, levelChanged, levelSize }) => {
                         id: p.id,
                         image: image,
                         imageSrc: p.image,
-                        x: (p.positionX / ratio) - ((image.width / sizeRatio) / 2),
-                        y: height - ((p.positionY / ratio) + ((image.height / sizeRatio) / 2)),
+                        validPosition: p.validPosition ? computePieceCanvasPosition(p.validPosition, ratio, sizeRatio, image) : null,
+                        initialPosition: p.initialPosition ? computePieceCanvasPosition(p.initialPosition, ratio, sizeRatio, image) : null,
+                        position: p.position ? computePieceCanvasPosition(p.position, ratio, sizeRatio, image) : null,
                         rotation: 0,
                         isDragging: false,
                         scale: 1,
+                        name: p.name
                     }
                     ++i
                     loadedPiecesRef.current.push(piece)
-                    if (loadedPiecesRef.current.length === initialPieces.length) {
+                    if (loadedPiecesRef.current.length === level.pieces.length) {
                         setPieces(loadedPiecesRef.current)
                     }
                 })
             }
         }
-    }, [initialPieces, ratio, sizeRatio])
+    }, [level.pieces, ratio, sizeRatio])
 
     useEffect(() => {
-        if (selectedPiece) {
-            trRef.current.nodes([selectedPiece]);
+        if (selectedImage) {
+            trRef.current.nodes([selectedImage]);
             trRef.current.getLayer().batchDraw();
         }
         else {
@@ -187,13 +271,22 @@ const LevelDesign = ({ initialPieces, levelChanged, levelSize }) => {
                 trRef.current.getLayer().batchDraw();
             }
         }
-    }, [selectedPiece]);
+    }, [selectedImage]);
 
     return (
-                <ImageDropZone onChange={handleDropImage} style={{width: 800, margin: 'auto', boxSizing: 'border-box'}}>
+        <Grid container spacing={12}>
+            <Grid item xs={12}>
+                <Stepper activeStep={activeStep}>
+                    {steps.map((s, i) => <Step key={i}><StepLabel>{s}</StepLabel></Step>)}
+                </Stepper>
+            </Grid>
+            <Grid item xs={8}>
+                <ImageDropZone onChange={handleDropImage} style={{ width: width, margin: 'auto', boxSizing: 'border-box' }}>
                     <Stage width={width} height={height} style={{ border: "solid 1px black" }} onClick={clickBackground}>
                         <Layer>
-                            {pieces.map((piece) => {
+                            {activeStep === STEP_BACKGROUND ? <></> : pieces.filter(p => p.position || (activeStep === STEP_INITIAL_POSITION) || (p.validPosition && activeStep !== STEP_BACKGROUND && activeStep !== STEP_STATIC)).map((piece) => {
+                                const position = piece.position ?? ((activeStep === STEP_FINAL_POSITION) ? piece.validPosition : piece.initialPosition)
+
                                 return (<Image
                                     innerRadius={20}
                                     outerRadius={40}
@@ -213,8 +306,8 @@ const LevelDesign = ({ initialPieces, levelChanged, levelSize }) => {
                                     image={piece.image}
                                     id={piece.id}
                                     onClick={onSelect}
-                                    x={piece.x}
-                                    y={piece.y} />
+                                    x={position.x}
+                                    y={position.y} />
                                 )
                             }
                             )}
@@ -223,8 +316,21 @@ const LevelDesign = ({ initialPieces, levelChanged, levelSize }) => {
                             </Transformer>
                         </Layer>
                     </Stage>
-                </ImageDropZone>);
+                </ImageDropZone>
+            </Grid>
+            <Grid item xs={4}>
+                {
+                    selectedImage ? (
+                        <PieceDetails selectedPiece={selectedPiece} activeStep={activeStep} updatePiece={updatePiece} />) 
+                        : <p style={{ textAlign: 'center' }}>Select or upload a piece</p>
+                }
+            </Grid>
+            <Grid item xs={12}><PieceList pieces={pieces} orderChanged={reorderPieces} pieceChanged={updatePiece} /></Grid>
+            <Grid item xs={2}>{activeStep > 0 ? <Button onClick={() => setActiveStep(Math.max(activeStep - 1, 0))}>Previous</Button> : <></>}</Grid>
+            <Grid item xs={8}></Grid>
+            <Grid item xs={2}>{activeStep < steps.length - 1 ? <Button onClick={() => setActiveStep(Math.min(activeStep + 1, steps.length))}>Next</Button> : <></>}</Grid>
+        </Grid>
+    );
 };
-
 
 export default LevelDesign;

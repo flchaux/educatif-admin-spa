@@ -4,20 +4,26 @@ import { Button, TextField, Paper, Grid, Dialog, DialogTitle, DialogContent, Dia
 import axios from 'axios'
 import { useHistory } from 'react-router'
 import Delete from '@mui/icons-material/Delete'
+import MyDropzone from './ImageDropZone'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import uploadTmpFile from './uploadTmpFile'
+import config from './config';
 
-const baseUrl = 'http://localhost:8081';
+const baseUrl = config.baseApiUrl
+const worldSize = {width: 22, height:10}
+
 
 function BasicForm(props) {
     const [deletionConfirmOpen, setDeletionConfirmOpen] = useState(false)
     const [level, setLevel] = useState(props.level ?? {
         name: "",
         pieces: [],
-        size:{width: 16, height:10}
+        size:worldSize,
+        background: null,
     });
 
-    const onLevelChanged = useCallback((pieces) => {
-        setLevel({...level, pieces: pieces})
+    const onLevelChanged = useCallback((levelUpdated) => {
+        setLevel({...level, ...levelUpdated})
     }, [])
 
     const handleNameChange = (event) => {
@@ -39,19 +45,32 @@ function BasicForm(props) {
             const url = `${baseUrl}/level`
             axios.post(url, level)
                 .then(function (response) {
-                    //back()
+                    back()
                 })
         }
     }
     function deleteLevel() {
-        const baseUrl = 'http://localhost:8081';
+        const baseUrl = config.baseApiUrl
         const url = `${baseUrl}/delete?level=${level.name}`
-        console.log(url)
         axios.delete(url)
             .then(function (response) {
                 back()
             })
     }
+    /*
+    const handleDropBackground = (files) => {
+        
+        uploadTmpFile(files[0], (imageId) => {
+            setLevel({
+                ...level,
+                background: {
+                    imageId
+                },
+            })
+            setBackgroundUrl(URL.createObjectURL(files[0]))
+        })
+       
+    }*/
 
     return <>
     <Dialog
@@ -73,7 +92,8 @@ function BasicForm(props) {
                 Delete
             </Button>
         </DialogActions>
-    </Dialog><Paper className='designer' xs={6}>
+    </Dialog>
+    <Paper className='designer' xs={6}>
         <form onSubmit={create}>
             <Grid container spacing={2} alignItems="center">
                 <Grid item xs={1}>
@@ -92,9 +112,8 @@ function BasicForm(props) {
                     <TextField value={level.name} onChange={handleNameChange} style={{ width: '100%' }} disabled={props.level ? true : false} />
                 </Grid>
                 <Grid item xs={12}>
-                    <LevelDesign initialPieces={level.pieces} levelChanged={onLevelChanged} levelSize={level.size} />
+                    <LevelDesign level={level} levelChanged={onLevelChanged} />
                 </Grid>
-
                 <Grid item xs={12}>
                     <Button style={{float: 'right'}} variant='contained' type="submit">Save</Button>
                 </Grid>

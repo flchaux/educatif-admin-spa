@@ -1,12 +1,14 @@
 import { Button, TextField, Slider, Grid, Paper, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import axios from 'axios'
 import MyDropzone from './ImageDropZone'
 import { useHistory } from 'react-router'
 import Delete from '@mui/icons-material/Delete'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import config from './config'
 
-const baseUrl = 'http://localhost:8081';
+const baseUrl = config.baseApiUrl
+const backgroundSize = {width: 22, height: 10}
 
 function PuzzleForm(props) {
 
@@ -16,17 +18,20 @@ function PuzzleForm(props) {
             width: parseInt(props.level.specs.size.width),
             height: parseInt(props.level.specs.size.height),
             name: props.level.name,
-            file: baseUrl+'/level/'+props.level.name+"/src.png"
+            image: baseUrl+'/level/'+props.level.name+"/src.png",
+            background: baseUrl+'/level/'+props.level.name+"/background.png"
         }
     }
     
     const [deletionConfirmOpen, setDeletionConfirmOpen] = useState(false)
-    const [fileUrl, setFileUrl] = useState(levelLoaded?.file)
+    const [imageUrl, setImageUrl] = useState(levelLoaded?.image)
+    const [backgroundUrl, setBackgroundUrl] = useState(levelLoaded?.background)
     const [level, setLevel] = useState(levelLoaded ?? {
         width: 4,
         height: 4,
         name: "",
-        file: null
+        background: null,
+        image: null
     })
 
     const handleSliderWidthChange = (event, newValue) => {
@@ -51,9 +56,17 @@ function PuzzleForm(props) {
     const handleDropImage = (files) => {
         setLevel({
             ...level,
-            file: files[0],
+            image: files[0],
         })
-        setFileUrl(URL.createObjectURL(files[0]))
+        setImageUrl(URL.createObjectURL(files[0]))
+    }
+
+    const handleDropBackground = (files) => {
+        setLevel({
+            ...level,
+            background: files[0],
+        })
+        setBackgroundUrl(URL.createObjectURL(files[0]))
     }
 
     const history = useHistory()
@@ -64,12 +77,11 @@ function PuzzleForm(props) {
 
 
     function create() {
-        if (level.name.length > 0 && level.file != null) {
-            const baseUrl = 'http://localhost:8081';
+        if (level.name.length > 0 && level.image != null) {
             var formData = new FormData();
-            formData.append("image", level.file);
+            formData.append("image", level.image);
+            formData.append("background", level.background);
             const url = `${baseUrl}/generate/puzzle?level=${level.name}&width=${level.width}&height=${level.height}`
-            console.log(url)
             axios.post(url, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
@@ -82,11 +94,20 @@ function PuzzleForm(props) {
     }
 
     function update(){
-        if (level.name.length > 0 && level.file != null) {
-            const baseUrl = 'http://localhost:8081';
+        if (level.name.length > 0 && level.image != null) {
+            var formData = new FormData();
+            if(backgroundUrl !== levelLoaded.background){
+                formData.append("background", level.background);
+            }
+            if(imageUrl !== levelLoaded.image){
+                formData.append("image", level.image);
+            }
             const url = `${baseUrl}/generate/puzzle?level=${level.name}&width=${level.width}&height=${level.height}`
-            console.log(url)
-            axios.patch(url)
+            axios.patch(url, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            })
                 .then(function (response) {
                     back()
                 })
@@ -104,9 +125,7 @@ function PuzzleForm(props) {
     }
 
     function deleteLevel() {
-        const baseUrl = 'http://localhost:8081';
         const url = `${baseUrl}/delete?level=${level.name}`
-        console.log(url)
         axios.delete(url)
             .then(function (response) {
                 back()
@@ -137,7 +156,7 @@ function PuzzleForm(props) {
             </Dialog>
             <Paper className='content'>
                 <form onSubmit={submit}>
-                    <Grid container spacing={2} alignItems="center">
+                    <Grid container spacing={4} alignItems="center">
                         <Grid item xs={1}>
                             <ArrowBackIcon style={{ cursor: 'pointer', float: 'left' }} onClick={() => back()} />
                         </Grid>
@@ -147,29 +166,35 @@ function PuzzleForm(props) {
                         <Grid item xs={1}>
                             {props.level ? <Delete onClick={() => setDeletionConfirmOpen(true)} style={{ cursor: "pointer", float: 'right' }} /> : <></>}
                         </Grid>
-                        <Grid item xs={6}>
+                        <Grid item xs={4}>
                             Name
                         </Grid>
-                        <Grid item xs={6}>
+                        <Grid item xs={8}>
                             <TextField value={level.name} onChange={handleNameChange} style={{ width: '100%' }} disabled={props.level ? true : false} />
                         </Grid>
-                        <Grid item xs={6}>
+                        <Grid item xs={4}>
                             Width
                         </Grid>
-                        <Grid item xs={6}>
-                            <Slider min={2} max={8} marks valueLabelDisplay="on" aria-label="Width" disabled={props.level ? true : false} value={level.width} onChange={handleSliderWidthChange} />
+                        <Grid item xs={8}>
+                            <Slider min={2} max={8} marks valueLabelDisplay="on" aria-label="Width" value={level.width} onChange={handleSliderWidthChange} />
                         </Grid>
-                        <Grid item xs={6}>
+                        <Grid item xs={4}>
                             Height
                         </Grid>
-                        <Grid item xs={6}>
-                            <Slider min={2} max={8} marks valueLabelDisplay="on" aria-label="Height" disabled={props.level ? true : false} value={level.height} onChange={handleSliderHeightChange} />
+                        <Grid item xs={8}>
+                            <Slider min={2} max={8} marks valueLabelDisplay="on" aria-label="Height" value={level.height} onChange={handleSliderHeightChange} />
                         </Grid>
-                        <Grid item xs={6}>
+                        <Grid item xs={4}>
                             Image
                         </Grid>
-                        <Grid item xs={6}>
-                            <MyDropzone onChange={handleDropImage} disabled={props.level ? true : false} file={fileUrl}></MyDropzone>
+                        <Grid item xs={8}>
+                            <MyDropzone onChange={handleDropImage} style={{width: 300, height: 300}} file={imageUrl}></MyDropzone>
+                        </Grid>
+                        <Grid item xs={4}>
+                            Background
+                        </Grid>
+                        <Grid item xs={8}>
+                            <MyDropzone onChange={handleDropBackground} style={{width: 200*backgroundSize.width/backgroundSize.height, height: 200}} disabled={props.level ? true : false} file={backgroundUrl}></MyDropzone>
                         </Grid>
                         <Grid item xs={12}>
                             <Button style={{float: 'right'}} variant='contained' type="submit">Save</Button>

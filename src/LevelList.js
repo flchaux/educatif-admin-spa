@@ -2,12 +2,14 @@ import { Paper, Button, List, ListItem, ListItemButton, Menu, MenuItem } from '@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Link } from 'react-router-dom';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import config from './config';
 
 function LevelList() {
     const [anchorEl, setAnchorEl] = useState(null);
     const createMenuOpen = Boolean(anchorEl);
     function load() {
-        const baseUrl = 'http://localhost:8081';
+        const baseUrl = config.baseApiUrl
         const url = `${baseUrl}/levels`
         axios.get(url)
             .then(function (response) {
@@ -34,9 +36,7 @@ function LevelList() {
 
     return (
         <Paper className='content'>
-            <Button component={Link} variant='contained' to="/level/create/puzzle">Create Puzzle</Button>
-            <Button component={Link} variant='contained' to="/level/create/basic">Create from scratch</Button>
-            <Button variant='contained' onClick={onClickCreate}>Create</Button>
+            <Button style={{float: 'right'}} variant="contained" startIcon={<AddCircleOutlineIcon />} onClick={onClickCreate}>Create</Button>
 
             <Menu
                 anchorEl={anchorEl}
