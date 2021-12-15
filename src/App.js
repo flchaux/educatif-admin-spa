@@ -3,10 +3,10 @@ import {
   Route,
   Link,
 } from 'react-router-dom'
-import EditLevel from './EditLevel';
+import EditLevel from './level-edit/EditLevel';
 import LevelList from './LevelList';
-import PuzzleForm from './PuzzleForm'
-import BasicForm from './BasicForm'
+import PuzzleForm from './level-edit/PuzzleForm'
+import BasicForm from './level-edit/BasicForm'
 import EditPlaylist from './EditPlaylist';
 import PlaylistList from './PlaylistList';
 import { Button, Paper } from '@mui/material'
