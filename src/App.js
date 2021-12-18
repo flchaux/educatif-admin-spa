@@ -14,7 +14,7 @@ import { Button, Paper } from '@mui/material'
 function App() {
   return (
     <div className="App">
-      <BrowserRouter>
+      <BrowserRouter basename={'/admin'}>
         <Paper>
           <Button component={Link} to="/playlist">Playlists</Button>
           <Button component={Link} to="/level">Levels</Button>
