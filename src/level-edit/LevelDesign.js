@@ -302,7 +302,9 @@ const LevelDesign = ({ levelChanged, level }) => {
                 <ImageDropZone onChange={handleDropImage} style={{ width: width, margin: 'auto', boxSizing: 'border-box' }}>
                     <Stage width={width} height={height} style={{ border: "solid 1px black" }} onClick={clickBackground}>
                         <Layer>
-                            <URLImage onClick={clickBackground} src={backgroundUrl} />
+                            <URLImage onClick={clickBackground} src={backgroundUrl} 
+                                    scaleX={ 1 / sizeRatio }
+                                    scaleY={ 1 / sizeRatio} />
                             {activeStep === STEP_BACKGROUND ? <></> : pieces.filter(p => p.position || (activeStep === STEP_INITIAL_POSITION) || (p.validPosition && activeStep !== STEP_BACKGROUND && activeStep !== STEP_STATIC)).map((piece) => {
                                 const position = piece.position ?? ((activeStep === STEP_FINAL_POSITION) ? piece.validPosition : piece.initialPosition)
 
