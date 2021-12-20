@@ -265,11 +265,12 @@ const LevelDesign = ({ levelChanged, level }) => {
                         scale: 1,
                         name: p.name
                     }
+                    console.log(index)
                     loadedPiecesRef.current[index] = piece
                     if (loadedPiecesRef.current.length === level.pieces.length) {
+                        console.log(loadedPiecesRef.current)
                         setPieces(loadedPiecesRef.current)
                     }
-                    ++i
                 })
             }
         }
