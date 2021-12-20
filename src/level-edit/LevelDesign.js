@@ -265,7 +265,7 @@ const LevelDesign = ({ levelChanged, level }) => {
                         name: p.name
                     }
                     ++i
-                    loadedPiecesRef.current.push(piece)
+                    loadedPiecesRef.current[i] = piece
                     if (loadedPiecesRef.current.length === level.pieces.length) {
                         setPieces(loadedPiecesRef.current)
                     }
