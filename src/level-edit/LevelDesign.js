@@ -249,7 +249,7 @@ const LevelDesign = ({ levelChanged, level }) => {
                 let imgUrl = p.url
                 let image = new window.Image();
                 image.src = imgUrl;
-                images.push(image)
+                images[i] = image
                 image.addEventListener('load', () => {
                     let image = images[i]
                     let piece = {
@@ -264,11 +264,11 @@ const LevelDesign = ({ levelChanged, level }) => {
                         scale: 1,
                         name: p.name
                     }
-                    ++i
                     loadedPiecesRef.current[i] = piece
                     if (loadedPiecesRef.current.length === level.pieces.length) {
                         setPieces(loadedPiecesRef.current)
                     }
+                    ++i
                 })
             }
         }
